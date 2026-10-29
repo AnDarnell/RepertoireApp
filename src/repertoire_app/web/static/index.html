@@ -1,0 +1,1497 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Repertoarutforskare</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, "Segoe UI", sans-serif;
+      background: #101714;
+      color: #e7eee9;
+      font-synthesis: none;
+    }
+
+    * { box-sizing: border-box; }
+
+    body { margin: 0; min-width: 320px; }
+
+    header {
+      align-items: center;
+      background: #18221d;
+      border-bottom: 1px solid #2c3b32;
+      display: flex;
+      justify-content: space-between;
+      padding: 18px clamp(16px, 4vw, 48px);
+    }
+
+    h1 { font-size: 1.2rem; margin: 0; }
+    .muted { color: #a4b2a8; font-size: .9rem; }
+
+    main { margin: 24px auto; max-width: 1440px; padding: 0 20px; }
+
+    .toolbar, .panel {
+      background: #18221d;
+      border: 1px solid #2c3b32;
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .toolbar {
+      align-items: end;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    label { color: #bdc9c0; display: grid; font-size: .82rem; gap: 6px; }
+    .time-control-filters {
+      border: 1px solid #405247;
+      border-radius: 7px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 12px;
+      margin: 0;
+      min-height: 40px;
+      padding: 5px 10px 8px;
+    }
+    .time-control-filters legend { color: #bdc9c0; font-size: .82rem; padding: 0 4px; }
+    .time-control-filters label {
+      align-items: center;
+      display: flex;
+      gap: 5px;
+    }
+    .time-control-filters input { accent-color: #83c995; min-height: auto; }
+    input, select, button { font: inherit; }
+    input, select {
+      background: #101714;
+      border: 1px solid #405247;
+      border-radius: 7px;
+      color: #f0f5f1;
+      min-height: 40px;
+      padding: 8px 10px;
+    }
+
+    button {
+      background: #27382d;
+      border: 1px solid #425b49;
+      border-radius: 7px;
+      color: #e9f4eb;
+      cursor: pointer;
+      padding: 9px 12px;
+    }
+
+    button:hover { background: #344b3b; }
+    button:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 2px solid #83c995;
+      outline-offset: 2px;
+    }
+
+    .primary { background: #36734a; border-color: #4a9361; font-weight: 650; }
+    .primary:hover { background: #43885a; }
+    .primary:disabled,
+    .primary:disabled:hover {
+      background: #303833;
+      border-color: #444e47;
+      color: #929b94;
+      cursor: not-allowed;
+    }
+    .error { color: #ffaaa1; margin: 12px 0; }
+    .hidden { display: none !important; }
+
+    .stats {
+      color: #b6c4ba;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 24px;
+      margin: 0 0 16px;
+    }
+
+    .stats strong { color: #f0f5f1; }
+
+    .workspace {
+      align-items: start;
+      display: grid;
+      gap: 20px;
+      grid-template-columns: minmax(320px, 1.2fr) minmax(280px, .8fr);
+    }
+
+    h2 { font-size: 1rem; margin: 0 0 12px; }
+    .board-panel {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      justify-items: center;
+    }
+    .board-content {
+      display: grid;
+      grid-column: 1 / -1;
+      justify-items: center;
+      min-width: 0;
+      width: 100%;
+    }
+    .board-panel.review-active {
+      align-items: center;
+      grid-template-columns: minmax(250px, .8fr) minmax(320px, 1fr);
+      justify-items: stretch;
+    }
+    .review-active .board-content { grid-column: 2; grid-row: 1; }
+    .review-active .review-flow {
+      align-self: start;
+      grid-column: 1;
+      grid-row: 1;
+      margin: 94px 16px 0 0;
+      min-width: 0;
+      width: 100%;
+    }
+    .board-player-label {
+      color: #b9c9bd;
+      font-size: .88rem;
+      font-weight: 600;
+      margin: 0 0 8px;
+      text-align: center;
+    }
+    .board-heading {
+      align-items: center;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      margin: 0 0 2px;
+      width: min(100%, 460px);
+    }
+    .board-title { color: #e8f0ea; grid-column: 2; margin: 0; text-align: center; }
+    .board-heading .flip-button { grid-column: 3; justify-self: end; }
+    .flip-button { font-size: .78rem; min-height: 30px; padding: 4px 9px; }
+    .position-opening { line-height: 1.25; margin: 0 0 6px; min-height: 1.25em; text-align: center; }
+    .board {
+      aspect-ratio: 1;
+      border: 5px solid #303a33;
+      display: grid;
+      grid-template: repeat(8, minmax(0, 1fr)) / repeat(8, minmax(0, 1fr));
+      max-width: min(100%, 460px);
+      min-width: 0;
+      position: relative;
+      width: min(100%, 460px);
+    }
+
+    .board-arrows {
+      height: calc(100% - 10px);
+      inset: 5px;
+      overflow: visible;
+      pointer-events: none;
+      position: absolute;
+      width: calc(100% - 10px);
+      z-index: 2;
+    }
+
+    .square {
+      align-items: center;
+      display: flex;
+      font-family: "Segoe UI Symbol", "Arial Unicode MS", serif;
+      font-size: clamp(27px, 5.3vw, 55px);
+      justify-content: center;
+      line-height: 1;
+      position: relative;
+    }
+
+    .piece[data-color="white"] {
+      color: #fff9e8;
+      text-shadow: 0 1px 3px #202820;
+    }
+
+    .piece[data-color="black"] { color: #202820; }
+    .light { background: #d7ddc6; color: #202820; }
+    .dark { background: #739071; color: #202820; }
+    .coordinates {
+      bottom: 2px;
+      font: 10px/1 "Segoe UI", sans-serif;
+      left: 3px;
+      opacity: .7;
+      position: absolute;
+    }
+
+    .current-line {
+      color: #b9c9bd;
+      line-height: 1.5;
+      margin: 12px 0;
+      min-height: 1.5em;
+      text-align: center;
+    }
+
+    .position-opening { margin: 0 0 10px; text-align: center; }
+    .outlier-opening { color: #a4b2a8; font-size: .75rem; }
+    .position-results {
+      font-size: .9rem;
+      line-height: 1.5;
+      margin: 0 0 12px;
+      text-align: center;
+    }
+
+    .score-neutral { color: #f0d978; }
+    .score-positive { color: #a7dfa9; }
+    .score-negative { color: #f0a2a2; }
+
+    .move-list { display: grid; gap: 8px; }
+    .move-choice {
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      text-align: left;
+      background-image: linear-gradient(
+        to right,
+        rgba(112, 174, 123, .28) var(--move-frequency, 0%),
+        transparent var(--move-frequency, 0%)
+      );
+      transition: background-color .15s ease, background-image .15s ease;
+    }
+    .move-label { display: grid; gap: 4px; }
+    .move-list-toggle { justify-self: start; }
+    .move-meta { display: grid; gap: 3px; text-align: right; }
+    .move-frequency { color: #b9c9bd; font-size: .83rem; }
+    .move-results { font-size: .78rem; }
+    .move-last-played { color: #8f9e93; font-size: .7rem; text-align: left; }
+    .outlier-section { border-top: 1px solid #2c3b32; margin-top: 20px; padding-top: 16px; }
+    .outlier-help { margin: -4px 0 12px; }
+    .outlier-list { display: grid; gap: 8px; }
+    .outlier-item { display: grid; }
+    .outlier-choice {
+      align-items: center;
+      background: #27382d;
+      border: 1px solid #425b49;
+      border-radius: 7px;
+      color: #e9f4eb;
+      cursor: pointer;
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      padding: 9px 12px;
+      text-align: left;
+      width: 100%;
+    }
+    .outlier-choice:hover { background: #344b3b; }
+    .outlier-details { display: grid; gap: 4px; min-width: 0; }
+    .outlier-details-button {
+      background: transparent;
+      border: 0;
+      color: inherit;
+      display: grid;
+      flex: 1 1 auto;
+      gap: 4px;
+      min-width: 0;
+      padding: 0;
+      text-align: left;
+    }
+    .outlier-details-button:hover { background: transparent; }
+    .review-request {
+      background: #e8d77a;
+      border-color: #f0df8a;
+      color: #242719;
+      flex: 0 0 auto;
+      font-size: .82rem;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+    .review-request:hover { background: #f1e39a; }
+    .review-flow {
+      background: #101714;
+      border: 1px solid #405247;
+      border-radius: 8px;
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+      padding: 12px;
+    }
+    .review-step { display: grid; gap: 4px; }
+    .review-step h3 { font-size: .95rem; margin: 0 0 4px; }
+    .review-navigation { align-items: center; display: flex; gap: 8px; }
+    .review-choices { display: grid; gap: 8px; }
+    .review-choice { text-align: left; }
+    .review-choice-score { font-weight: 650; }
+    .review-step p { margin: 4px 0; }
+    .review-recommendation { font-weight: 600; }
+    .review-move-preview { cursor: help; }
+    .review-move-preview:hover,
+    .review-move-preview:focus-visible { color: #b6d9ff; }
+    .review-analysis-link {
+      color: #8fc5ff;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .review-analysis-link:hover { color: #b6d9ff; }
+    .review-analysis-link:focus-visible { outline: 2px solid #83c995; outline-offset: 2px; }
+    .outlier-score { font-size: .82rem; }
+    .nav-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    footer { color: #a4b2a8; font-size: .8rem; margin: 18px 0 28px; }
+
+    @media (max-width: 980px) {
+      .workspace { grid-template-columns: minmax(270px, 1fr) minmax(240px, .8fr); }
+    }
+
+    @media (max-width: 1100px) {
+      .board-panel.review-active { grid-template-columns: minmax(0, 1fr); }
+      .review-active .board-content { grid-column: 1; grid-row: 1; }
+      .review-active .review-flow {
+        grid-column: 1;
+        grid-row: 2;
+        margin: 18px 0 0;
+      }
+    }
+
+    @media (max-width: 650px) {
+      .workspace { grid-template-columns: 1fr; }
+      .board { max-width: min(100%, 420px); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Repertoarutforskare</h1>
+    <span class="muted">Lokal analys · ingen motor</span>
+  </header>
+  <main>
+    <form class="toolbar" id="load-form">
+      <label>
+        Lichess-användarnamn
+        <input id="username" name="username" autocomplete="username" required>
+      </label>
+      <label>
+        Spela som
+        <select id="color" name="color">
+          <option value="white">Vit</option>
+          <option value="black">Svart</option>
+        </select>
+      </label>
+      <label>
+        Minst partier per gren
+        <select id="min-games" name="min_games">
+          <option value="2" selected>2 partier</option>
+          <option value="3">3 partier</option>
+          <option value="5">5 partier</option>
+          <option value="10">10 partier</option>
+          <option value="1">Alla grenar</option>
+        </select>
+      </label>
+      <label>
+        Hämta högst antal partier
+        <input id="max-games" type="number" min="1" max="1000" value="1000">
+      </label>
+      <fieldset class="time-control-filters" aria-label="Spelformer att importera">
+        <legend>Spelformer</legend>
+        <label><input type="checkbox" name="perf-type" value="bullet" checked> Bullet</label>
+        <label><input type="checkbox" name="perf-type" value="blitz" checked> Blitz</label>
+        <label><input type="checkbox" name="perf-type" value="rapid" checked> Rapid</label>
+      </fieldset>
+      <button type="button" id="import-button">Hämta från Lichess</button>
+      <button class="primary" type="submit">Visa repertoar</button>
+    </form>
+
+    <p class="muted" id="import-status" role="status" aria-live="polite"></p>
+    <p class="error hidden" id="error" role="alert"></p>
+    <p class="muted" id="welcome">Ange ett Lichess-användarnamn för att söka bland importerade partier eller hämta partier direkt.</p>
+    <section class="hidden" id="results">
+      <div class="stats" id="stats"></div>
+      <div class="workspace">
+        <section class="panel board-panel">
+          <div class="board-content">
+            <p class="board-player-label" id="board-player-label"></p>
+            <div class="board-heading">
+              <h2 class="board-title" id="position-title">Startställning</h2>
+              <button class="flip-button" type="button" id="flip-board-button" aria-pressed="false">Flip</button>
+            </div>
+            <p class="position-opening muted" id="position-opening"></p>
+            <div class="board" id="board" role="img" aria-label="Chess board"></div>
+            <p class="current-line" id="current-line"></p>
+            <p class="position-results" id="position-results"></p>
+            <div class="nav-row">
+              <button type="button" id="back-button" disabled>Ett drag bakåt</button>
+              <button type="button" id="start-button" disabled>Till start</button>
+            </div>
+          </div>
+          <section class="review-flow hidden" id="review-flow" aria-live="polite">
+            <h2>Granskningsflöde</h2>
+            <div id="review-result"></div>
+            <div class="review-navigation">
+              <button type="button" id="review-previous" disabled>Föregående</button>
+              <button class="primary" type="button" id="review-next" disabled>Nästa</button>
+            </div>
+          </section>
+        </section>
+
+        <section class="panel moves-panel">
+          <h2>Drag från ställningen</h2>
+          <p class="muted" id="move-help">Välj ett av dina vanligaste förstadrag.</p>
+          <div class="move-list" id="move-list"></div>
+          <section class="outlier-section" aria-labelledby="review-title">
+            <h2 id="review-title">Ställningar att granska</h2>
+            <p class="muted outlier-help" id="review-threshold"></p>
+            <div class="outlier-list" id="review-list"></div>
+          </section>
+          <section class="outlier-section" aria-labelledby="strength-title">
+            <h2 id="strength-title">Ställningar med starka resultat</h2>
+            <p class="muted outlier-help" id="strength-threshold"></p>
+            <div class="outlier-list" id="strength-list"></div>
+          </section>
+        </section>
+      </div>
+    </section>
+    <footer>
+      Frekvensen visar hur ofta draget spelades från föregående ställning.
+      Poängprocenten visas alltid ur vits perspektiv: vinst = 1, remi = 0,5,
+      förlust = 0. Färgen visar om resultatet är positivt eller negativt för
+      vald repertoarfärg; 45–55 % är neutralt. Använd «Vänd brädet» för att
+      byta sida på brädet.
+    </footer>
+  </main>
+  <script>
+    const pieceGlyphs = {
+      "K": "♔", "Q": "♕", "R": "♖", "B": "♗", "N": "♘", "P": "♙",
+      "k": "♚", "q": "♛", "r": "♜", "b": "♝", "n": "♞", "p": "♟"
+    };
+    const form = document.querySelector("#load-form");
+    const errorBox = document.querySelector("#error");
+    const importButton = document.querySelector("#import-button");
+    const importStatus = document.querySelector("#import-status");
+    const results = document.querySelector("#results");
+    const movesList = document.querySelector("#move-list");
+    const reviewList = document.querySelector("#review-list");
+    const strengthList = document.querySelector("#strength-list");
+    const reviewFlow = document.querySelector("#review-flow");
+    const reviewResult = document.querySelector("#review-result");
+    const boardPanel = document.querySelector(".board-panel");
+    const boardPlayerLabel = document.querySelector("#board-player-label");
+    const reviewPrevious = document.querySelector("#review-previous");
+    const reviewNext = document.querySelector("#review-next");
+    const boardElement = document.querySelector("#board");
+    const history = [];
+    let repertoire = null;
+    let positionIndex = new Map();
+    let currentNode = null;
+    let currentMoves = [];
+    let boardFlipped = false;
+    let firstMovesExpanded = false;
+    let reviewPositionsExpanded = false;
+    let strongPositionsExpanded = false;
+    let hoveredMoveUci = null;
+    let reviewNextMoveUci = null;
+    let reviewSession = null;
+
+    reviewPrevious.addEventListener("click", () => {
+      if (!reviewSession || reviewSession.stepIndex <= 0) return;
+      reviewSession.stepIndex -= 1;
+      renderReviewStep();
+    });
+
+    reviewNext.addEventListener("click", () => {
+      if (!reviewSession || reviewSession.stepIndex >= reviewSession.steps.length - 1) return;
+      reviewSession.stepIndex += 1;
+      renderReviewStep();
+    });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      await loadRepertoire();
+    });
+
+    importButton.addEventListener("click", async () => {
+      errorBox.classList.add("hidden");
+      importStatus.textContent = "";
+      const username = document.querySelector("#username").value.trim();
+      const maxGames = Number(document.querySelector("#max-games").value);
+      const perfTypes = Array.from(
+        document.querySelectorAll('input[name="perf-type"]:checked'),
+        (input) => input.value,
+      );
+      if (!username) {
+        errorBox.textContent = "Ange ett Lichess-användarnamn.";
+        errorBox.classList.remove("hidden");
+        return;
+      }
+      if (!Number.isInteger(maxGames) || maxGames < 1 || maxGames > 1000) {
+        errorBox.textContent = "Välj mellan 1 och 1 000 partier att hämta.";
+        errorBox.classList.remove("hidden");
+        return;
+      }
+      if (!perfTypes.length) {
+        errorBox.textContent = "Välj minst en spelform att importera.";
+        errorBox.classList.remove("hidden");
+        return;
+      }
+
+      importButton.disabled = true;
+      importStatus.textContent = `Hämtar partier från Lichess... 0/${maxGames} hämtade`;
+      try {
+        const response = await fetch("/api/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, max_games: maxGames, perf_types: perfTypes })
+        });
+        if (!response.ok) {
+          const payload = await response.json();
+          throw new Error(payload.error || "Kunde inte importera partier.");
+        }
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let payload = null;
+        while (true) {
+          const { value, done } = await reader.read();
+          buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+          const lines = buffer.split("\n");
+          buffer = lines.pop();
+          for (const line of lines) {
+            if (!line) continue;
+            const event = JSON.parse(line);
+            if (event.type === "progress") {
+              importStatus.textContent =
+                `Hämtar partier från Lichess... ${event.processed}/${maxGames} hämtade`;
+            } else if (event.type === "error") {
+              throw new Error(event.error);
+            } else if (event.type === "complete") {
+              payload = event;
+            }
+          }
+          if (done) break;
+        }
+        if (!payload) throw new Error("Importen avslutades utan ett resultat.");
+        importStatus.textContent =
+          `Hämtade ${payload.processed} partier; ${payload.imported} nya, ` +
+          `${payload.already_present} fanns redan.`;
+        if (payload.evicted_username) {
+          importStatus.textContent +=
+            ` Äldre partier för ${payload.evicted_username} togs bort för att hålla cachen till tre spelare.`;
+        }
+        await loadRepertoire();
+      } catch (error) {
+        importStatus.textContent = "";
+        errorBox.textContent = error.message;
+        errorBox.classList.remove("hidden");
+      } finally {
+        importButton.disabled = false;
+      }
+    });
+
+    async function loadRepertoire() {
+      errorBox.classList.add("hidden");
+      const username = document.querySelector("#username").value.trim();
+      const color = document.querySelector("#color").value;
+      const minGames = document.querySelector("#min-games").value;
+      const parameters = new URLSearchParams({
+        username,
+        color,
+        min_games: minGames
+      });
+
+      try {
+        const response = await fetch(`/api/repertoire?${parameters}`);
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "Kunde inte läsa repertoaren.");
+        repertoire = payload;
+        positionIndex = indexPositions(repertoire.root);
+        boardFlipped = color === "black";
+        boardPlayerLabel.textContent =
+          `${repertoire.username} som ${color === "white" ? "vit" : "svart"}`;
+        document.querySelector("#flip-board-button")
+          .setAttribute("aria-pressed", String(boardFlipped));
+        history.length = 0;
+        currentNode = repertoire.root;
+        currentMoves = [];
+        firstMovesExpanded = false;
+        reviewPositionsExpanded = false;
+        strongPositionsExpanded = false;
+        reviewSession = null;
+        reviewFlow.classList.add("hidden");
+        boardPanel.classList.remove("review-active");
+        document.querySelector("#welcome").classList.add("hidden");
+        results.classList.remove("hidden");
+        renderStats();
+        renderBoard(currentNode);
+        renderMoves();
+      } catch (error) {
+        results.classList.add("hidden");
+        errorBox.textContent = error.message;
+        errorBox.classList.remove("hidden");
+      }
+    }
+
+    function renderStats() {
+      const stats = document.querySelector("#stats");
+      stats.replaceChildren();
+      [
+        ["Partier", repertoire.games],
+        ["Unika ställningar", repertoire.unique_positions],
+        ["Bortgallrade grenar", repertoire.pruned_branches],
+        ["Partier med andra varianter", repertoire.unsupported_games]
+      ].forEach(([label, value]) => {
+        const item = document.createElement("span");
+        item.innerHTML = `<strong>${value}</strong> ${label}`;
+        stats.append(item);
+      });
+    }
+
+    function formatMove(parentFen, san, includeBlackMoveNumber = true) {
+      const fields = parentFen.split(" ");
+      const number = fields[5];
+      if (fields[1] === "w") return `${number}. ${san}`;
+      return includeBlackMoveNumber ? `${number}... ${san}` : san;
+    }
+
+    function formatPositionMove(node) {
+      if (!node.move_san) return "";
+      const fields = node.fen.split(" ");
+      const moveNumber = Number(fields[5]) - (fields[1] === "w" ? 1 : 0);
+      const notation = fields[1] === "w"
+        ? `${moveNumber}... ${node.move_san}`
+        : `${moveNumber}. ${node.move_san}`;
+      return `${notation} · ${node.games} partier`;
+    }
+
+    function positionKey(node) {
+      return node.position_key || node.fen.split(" ").slice(0, 4).join(" ");
+    }
+
+    function indexPositions(root) {
+      const positions = new Map();
+      const stack = [{ node: root, path: [root] }];
+      while (stack.length) {
+        const { node, path } = stack.pop();
+        const key = positionKey(node);
+        const occurrences = positions.get(key) || [];
+        occurrences.push({ node, path });
+        positions.set(key, occurrences);
+        Object.values(node.children).forEach((child) => {
+          stack.push({ node: child, path: [...path, child] });
+        });
+      }
+      return positions;
+    }
+
+    function renderBoard(node) {
+      hoveredMoveUci = null;
+      boardElement.replaceChildren();
+      const fen = node.fen;
+      const rows = fen.split(" ")[0].split("/");
+      rows.forEach((row, rowIndex) => {
+        let fileIndex = 0;
+        const rank = 8 - rowIndex;
+        for (const character of row) {
+          if (/\d/.test(character)) {
+            const emptyCount = Number(character);
+            for (let index = 0; index < emptyCount; index += 1) {
+              addSquare(
+                boardFlipped ? 7 - rowIndex : rowIndex,
+                boardFlipped ? 7 - fileIndex : fileIndex,
+                null,
+                null,
+                rank,
+                fileIndex
+              );
+              fileIndex += 1;
+            }
+          } else {
+            addSquare(
+              boardFlipped ? 7 - rowIndex : rowIndex,
+              boardFlipped ? 7 - fileIndex : fileIndex,
+              pieceGlyphs[character],
+              character === character.toUpperCase() ? "white" : "black",
+              rank,
+              fileIndex
+            );
+            fileIndex += 1;
+          }
+        }
+      });
+      renderBoardArrows(node.move_uci, hoveredMoveUci, reviewNextMoveUci);
+      document.querySelector("#position-title").textContent =
+        node.move_san
+          ? formatPositionMove(node)
+          : `Startställning · ${node.games} partier`;
+      document.querySelector("#current-line").textContent =
+        currentMoves.length ? currentMoves.join(" ") : "Välj ett drag för att börja";
+      document.querySelector("#position-opening").textContent =
+        node.eco_code ? `ECO: ${node.eco_code} · ${node.opening_name}` : "ECO:";
+      document.querySelector("#position-results").textContent =
+        formatResults(node.results, true);
+      document.querySelector("#position-results").className =
+        `position-results ${scoreClass(node.results)}`;
+      document.querySelector("#back-button").disabled = history.length === 0;
+      document.querySelector("#start-button").disabled = history.length === 0;
+    }
+
+    function addSquare(row, column, glyph, pieceColor, rank, file) {
+      const square = document.createElement("div");
+      square.className = `square ${(row + column) % 2 === 0 ? "light" : "dark"}`;
+      square.style.gridRow = String(row + 1);
+      square.style.gridColumn = String(column + 1);
+      if (glyph) {
+        const piece = document.createElement("span");
+        piece.className = "piece";
+        piece.dataset.color = pieceColor;
+        piece.textContent = glyph;
+        square.append(piece);
+      }
+      if (column === 0) {
+        const rankCoordinate = document.createElement("span");
+        rankCoordinate.className = "coordinates";
+        rankCoordinate.textContent = String(rank);
+        square.append(rankCoordinate);
+      }
+      if (row === 7) {
+        const fileCoordinate = document.createElement("span");
+        fileCoordinate.className = "coordinates";
+        fileCoordinate.textContent = "abcdefgh"[file];
+        square.append(fileCoordinate);
+      }
+      boardElement.append(square);
+    }
+
+    function renderBoardArrows(lastMoveUci, previewMoveUci, nextMoveUci) {
+      const previousArrows = boardElement.querySelector(".board-arrows");
+      if (previousArrows) previousArrows.remove();
+      const arrows = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      arrows.classList.add("board-arrows");
+      arrows.setAttribute("viewBox", "0 0 8 8");
+      arrows.setAttribute("aria-hidden", "true");
+      [
+        [lastMoveUci, "#f2cf66", .62],
+        [previewMoveUci || nextMoveUci, previewMoveUci ? "#82baff" : "#79d7b1",
+          previewMoveUci ? .95 : .82],
+      ].forEach(([uci, color, opacity]) => {
+        if (typeof uci !== "string" || !/^[a-h][1-8][a-h][1-8]/.test(uci)) return;
+        const from = boardSquarePoint(uci.slice(0, 2));
+        const to = boardSquarePoint(uci.slice(2, 4));
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        const distance = Math.hypot(dx, dy);
+        if (!distance) return;
+        const unitX = dx / distance;
+        const unitY = dy / distance;
+        const startX = from.x + unitX * .12;
+        const startY = from.y + unitY * .12;
+        const tipX = to.x - unitX * .14;
+        const tipY = to.y - unitY * .14;
+        const baseX = tipX - unitX * .28;
+        const baseY = tipY - unitY * .28;
+        const sideX = -unitY * .13;
+        const sideY = unitX * .13;
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", String(startX));
+        line.setAttribute("y1", String(startY));
+        line.setAttribute("x2", String(baseX));
+        line.setAttribute("y2", String(baseY));
+        line.setAttribute("stroke", color);
+        line.setAttribute("stroke-width", ".07");
+        line.setAttribute("stroke-linecap", "round");
+        line.setAttribute("opacity", String(opacity));
+        const head = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+        head.setAttribute("points",
+          `${tipX},${tipY} ${baseX + sideX},${baseY + sideY} ${baseX - sideX},${baseY - sideY}`);
+        head.setAttribute("fill", color);
+        head.setAttribute("opacity", String(opacity));
+        arrows.append(line, head);
+      });
+      boardElement.append(arrows);
+    }
+
+    function boardSquarePoint(square) {
+      const file = square.charCodeAt(0) - "a".charCodeAt(0);
+      const rank = Number(square[1]) - 1;
+      return {
+        x: (boardFlipped ? 7 - file : file) + .5,
+        y: (boardFlipped ? rank : 7 - rank) + .5,
+      };
+    }
+
+    function renderMoves() {
+      movesList.replaceChildren();
+      const available = currentNode ? Object.values(currentNode.children) : [];
+      const isStartingPosition = repertoire !== null && currentNode === repertoire.root;
+      const visibleMoves = isStartingPosition && !firstMovesExpanded
+        ? available.slice(0, 5)
+        : available;
+      document.querySelector("#move-help").textContent = currentNode
+        ? currentNode.move_san
+          ? `${available.length} fortsättningar efter ${currentNode.move_san}.`
+          : `${available.length} vanliga förstadrag i dina partier.`
+        : "Ladda en repertoar för att visa dragen.";
+      if (!available.length && currentNode) {
+        movesList.textContent = "Inga fler grenar uppfyller den valda frekvensen.";
+        const transpositions = (positionIndex.get(positionKey(currentNode)) || [])
+          .filter(({ node }) => node !== currentNode && Object.keys(node.children).length > 0)
+          .sort((left, right) => right.node.games - left.node.games);
+        transpositions.forEach((occurrence) => {
+          const button = document.createElement("button");
+          button.className = "move-list-toggle";
+          button.type = "button";
+          const line = occurrence.path.slice(1).map((move, index) =>
+            formatMove(occurrence.path[index].fen, move.move_san, false)
+          );
+          button.textContent =
+            `Samma ställning via ${line.join(" ")} (${occurrence.node.games} partier)`;
+          button.addEventListener("click", () => {
+            clearActiveReview();
+            history.splice(0, history.length, ...occurrence.path.slice(0, -1));
+            currentMoves = line;
+            currentNode = occurrence.node;
+            renderBoard(currentNode);
+            renderMoves();
+          });
+          movesList.append(button);
+        });
+      }
+      visibleMoves.forEach((child) => {
+        const button = document.createElement("button");
+        button.className = "move-choice";
+        button.type = "button";
+        const moveFrequency = currentNode.games
+          ? Math.min(100, 100 * child.games / currentNode.games)
+          : 0;
+        button.style.setProperty("--move-frequency", `${moveFrequency}%`);
+        const label = document.createElement("span");
+        label.className = "move-label";
+        const moveName = document.createElement("span");
+        moveName.textContent = formatMove(currentNode.fen, child.move_san);
+        label.append(moveName);
+        const meta = document.createElement("span");
+        meta.className = "move-meta";
+        const frequency = document.createElement("span");
+        frequency.className = "move-frequency";
+        frequency.textContent = `${child.games} (${percent(child.games, currentNode.games)})`;
+        const results = document.createElement("span");
+        results.className = `move-results ${scoreClass(child.results)}`;
+        results.textContent = formatResults(child.results);
+        meta.append(frequency, results);
+        if (child.average_opponent_rating !== null) {
+          const rating = document.createElement("span");
+          rating.className = "move-frequency";
+          rating.textContent = `Motståndarrating i snitt: ${Math.round(child.average_opponent_rating)}`;
+          meta.append(rating);
+        }
+        if (child.last_played_year !== null) {
+          const lastPlayed = document.createElement("span");
+          lastPlayed.className = "move-last-played";
+          lastPlayed.textContent = `Senast spelad ${child.last_played_year}`;
+          label.append(lastPlayed);
+        }
+        button.append(label, meta);
+        button.addEventListener("mouseenter", () => {
+          hoveredMoveUci = child.move_uci;
+          renderBoardArrows(currentNode.move_uci, hoveredMoveUci, reviewNextMoveUci);
+        });
+        button.addEventListener("mouseleave", () => {
+          hoveredMoveUci = null;
+          renderBoardArrows(currentNode.move_uci, null, reviewNextMoveUci);
+        });
+        button.addEventListener("focus", () => {
+          hoveredMoveUci = child.move_uci;
+          renderBoardArrows(currentNode.move_uci, hoveredMoveUci, reviewNextMoveUci);
+        });
+        button.addEventListener("blur", () => {
+          hoveredMoveUci = null;
+          renderBoardArrows(currentNode.move_uci, null, reviewNextMoveUci);
+        });
+        button.addEventListener("click", () => {
+          clearActiveReview();
+          history.push(currentNode);
+          currentMoves.push(formatMove(currentNode.fen, child.move_san, false));
+          currentNode = child;
+          renderBoard(currentNode);
+          renderMoves();
+        });
+        movesList.append(button);
+      });
+      if (isStartingPosition && available.length > 5) {
+        const toggle = document.createElement("button");
+        toggle.className = "move-list-toggle";
+        toggle.type = "button";
+        toggle.setAttribute("aria-expanded", String(firstMovesExpanded));
+        toggle.textContent = firstMovesExpanded
+          ? "Visa färre förstadrag"
+          : `Visa alla ${available.length} förstadrag`;
+        toggle.addEventListener("click", () => {
+          firstMovesExpanded = !firstMovesExpanded;
+          renderMoves();
+        });
+        movesList.append(toggle);
+      }
+      renderOutliers();
+    }
+
+    function renderOutliers() {
+      reviewList.replaceChildren();
+      strengthList.replaceChildren();
+      const reviewPositions = [];
+      const strongPositions = [];
+      const baseline = scorePercentage(repertoire.root.results, repertoire.color);
+      if (baseline === null) {
+        document.querySelector("#review-threshold").textContent =
+          "Kräver avgjorda partier för att beräkna spelarens basnivå.";
+        document.querySelector("#strength-threshold").textContent =
+          "Kräver avgjorda partier för att beräkna spelarens basnivå.";
+        renderPositionList(reviewList, reviewPositions, "Inga ställningar att granska.");
+        renderPositionList(strengthList, strongPositions, "Inga ställningar med starka resultat.");
+        return;
+      }
+      const lowerThreshold = Math.max(0, baseline - 10);
+      const upperThreshold = Math.min(100, baseline + 10);
+      const thresholdText =
+        `Minst 10 partier; mer än 10 procentenheter från spelarens basnivå ` +
+        `(${baseline.toFixed(1)} %; gränser ${lowerThreshold.toFixed(1)}–${upperThreshold.toFixed(1)} %).`;
+      document.querySelector("#review-threshold").textContent = thresholdText;
+      document.querySelector("#strength-threshold").textContent = thresholdText;
+
+      function collect(node, path, hasReviewAncestor = false) {
+        node.children.forEach((child) => {
+          const childPath = [...path, child];
+          const moveDepth = childPath.length - 1;
+          if (moveDepth < 3) {
+            collect(child, childPath, hasReviewAncestor);
+            return;
+          }
+          const decidedGames = child.results.decided_games;
+          let isReviewPosition = false;
+          if (decidedGames >= 10) {
+            const playerScore = scorePercentage(child.results, repertoire.color);
+            if (playerScore === null) {
+              collect(child, childPath, hasReviewAncestor);
+              return;
+            }
+            const position = { node: child, path: childPath, score: playerScore };
+            isReviewPosition = playerScore < lowerThreshold;
+            if (isReviewPosition && !hasReviewAncestor) reviewPositions.push(position);
+            if (playerScore > upperThreshold) strongPositions.push(position);
+          }
+          collect(child, childPath, hasReviewAncestor || isReviewPosition);
+        });
+      }
+
+      if (repertoire) collect(repertoire.root, [repertoire.root]);
+      reviewPositions.sort((left, right) => left.score - right.score);
+      strongPositions.sort((left, right) => right.score - left.score);
+      renderPositionList(reviewList, reviewPositions, "Inga ställningar att granska.");
+      renderPositionList(strengthList, strongPositions, "Inga ställningar med starka resultat.");
+    }
+
+    function renderPositionList(list, positions, emptyMessage) {
+      list.replaceChildren();
+      if (!positions.length) {
+        list.textContent = emptyMessage;
+        return;
+      }
+
+      const isReviewList = list === reviewList;
+      const expanded = isReviewList ? reviewPositionsExpanded : strongPositionsExpanded;
+      const visiblePositions = expanded ? positions : positions.slice(0, 5);
+      visiblePositions.forEach(({ node, path, score }) => {
+        const row = document.createElement("div");
+        row.className = "outlier-choice";
+        const details = document.createElement("span");
+        details.className = "outlier-details";
+        const line = path.slice(1).map((move, index) =>
+          formatMove(path[index].fen, move.move_san, false)
+        );
+        const label = document.createElement("span");
+        label.textContent = line.join(" ");
+        const result = document.createElement("span");
+        result.className = `outlier-score ${scoreClass(node.results)}`;
+        result.textContent = `${score.toFixed(1)} % poäng · ${node.results.decided_games} partier`;
+        details.append(label, result);
+        if (node.eco_code) {
+          const opening = document.createElement("span");
+          opening.className = "outlier-opening";
+          opening.textContent = `${node.eco_code} · ${node.opening_name}`;
+          details.append(opening);
+        }
+        const navigationButton = document.createElement("button");
+        navigationButton.className = "outlier-details-button";
+        navigationButton.type = "button";
+        navigationButton.append(details);
+        if (list === reviewList) {
+          const reviewButton = document.createElement("button");
+          reviewButton.className = "review-request";
+          reviewButton.type = "button";
+          reviewButton.textContent = "Begär granskning";
+          reviewButton.addEventListener("click", () => {
+            requestReview(
+              path.slice(1).map((move) => move.move_uci),
+              reviewButton,
+            );
+          });
+          row.append(navigationButton, reviewButton);
+        } else {
+          row.append(navigationButton);
+        }
+        navigationButton.addEventListener("click", () => {
+          clearActiveReview();
+          history.splice(0, history.length, ...path.slice(0, -1));
+          currentMoves = path.slice(1).map((move, index) =>
+            formatMove(path[index].fen, move.move_san, false)
+          );
+          currentNode = node;
+          renderBoard(currentNode);
+          renderMoves();
+        });
+        list.append(row);
+      });
+      if (positions.length > 5) {
+        const toggle = document.createElement("button");
+        toggle.className = "move-list-toggle";
+        toggle.type = "button";
+        toggle.setAttribute("aria-expanded", String(expanded));
+        toggle.textContent = expanded
+          ? "Visa färre ställningar"
+          : `Visa alla ${positions.length} ställningar`;
+        toggle.addEventListener("click", () => {
+          if (isReviewList) {
+            reviewPositionsExpanded = !reviewPositionsExpanded;
+          } else {
+            strongPositionsExpanded = !strongPositionsExpanded;
+          }
+          renderPositionList(list, positions, emptyMessage);
+        });
+        list.append(toggle);
+      }
+    }
+
+    async function requestReview(pathUci, button) {
+      reviewSession = {
+        pathUci,
+        choicesUci: [],
+        steps: [],
+        stepIndex: 0,
+        advancePastSelectedBranch: false,
+        stoppedReason: "",
+        loading: false
+      };
+      reviewFlow.classList.remove("hidden");
+      boardPanel.classList.add("review-active");
+      reviewResult.textContent = "Granskar vald variant mot Lichess Masters...";
+      reviewNext.disabled = true;
+      button.disabled = true;
+      try {
+        navigateToReviewStep({ path_uci: pathUci });
+        await fetchReview();
+      } catch (error) {
+        reviewResult.textContent = error.message;
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    async function fetchReview() {
+      reviewSession.loading = true;
+      try {
+        const response = await fetch("/api/review", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: repertoire.username,
+            color: repertoire.color,
+            path_uci: reviewSession.pathUci,
+            choices_uci: reviewSession.choicesUci
+          })
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "Kunde inte granska ställningen.");
+        reviewSession.steps = payload.steps;
+        reviewSession.stoppedReason = payload.stopped_reason;
+        if (!reviewSession.steps.length) {
+          reviewResult.textContent = payload.stopped_reason;
+          reviewPrevious.disabled = true;
+          reviewNext.disabled = true;
+          reviewSession.loading = false;
+          return;
+        }
+        if (reviewSession.advancePastSelectedBranch) {
+          const selectedBranchIndex = reviewSession.steps.findIndex(
+            (step) => step.type === "branch" && step.branch_index === reviewSession.choicesUci.length - 1,
+          );
+          if (selectedBranchIndex >= 0 && selectedBranchIndex + 1 < reviewSession.steps.length) {
+            reviewSession.stepIndex = selectedBranchIndex + 1;
+          } else if (selectedBranchIndex >= 0) {
+            reviewSession.stepIndex = selectedBranchIndex;
+          }
+          reviewSession.advancePastSelectedBranch = false;
+        }
+        reviewSession.stepIndex = Math.min(
+          reviewSession.stepIndex,
+          reviewSession.steps.length - 1,
+        );
+        reviewSession.loading = false;
+        renderReviewStep();
+      } catch (error) {
+        reviewSession.loading = false;
+        throw error;
+      }
+    }
+
+    function renderReviewStep() {
+      reviewResult.replaceChildren();
+      const step = reviewSession.steps[reviewSession.stepIndex];
+      reviewNextMoveUci = step.type === "repertoire"
+        ? step.repertoire_move.uci
+        : step.selected_move?.uci || null;
+      navigateToReviewStep(step);
+      const section = document.createElement("section");
+      section.className = "review-step";
+      const heading = document.createElement("h3");
+      heading.textContent =
+        `Beslut ${reviewSession.stepIndex + 1} · Efter ${step.line || "startställningen"}`;
+      section.append(heading);
+      if (step.type === "repertoire") {
+        const ownMove = step.repertoire_move;
+        section.append(reviewText(
+          `Ditt drag: ${ownMove.san} · ${ownMove.games}/${step.position_games} partier ` +
+          `(${(100 * ownMove.frequency).toFixed(1)} %)`
+        ));
+        section.append(
+          reviewScoreLine(
+            repertoire.username,
+            ownMove.score,
+            ownMove.decided_games,
+          )
+        );
+        if (ownMove.decided_games < 20) {
+          section.append(reviewText("(Litet urval – tolka resultatet försiktigt.)"));
+        }
+        section.append(reviewMoveLine("Masters", step.master_move));
+        if (step.master_most_played_moves.length) {
+          const isMastersMainMove = step.master_most_played_moves
+            .some((move) => move.uci === ownMove.uci);
+          const mostPlayed = reviewText(
+            `${isMastersMainMove ? "✓ " : ""}Vanligast i Masters: `
+          );
+          step.master_most_played_moves.forEach((move, index) => {
+            if (index) mostPlayed.append(document.createTextNode(", "));
+            mostPlayed.append(reviewMovePreview(`${move.san} (${move.games})`, move.uci));
+          });
+          section.append(mostPlayed);
+        } else {
+          section.append(reviewText("Ingen Masters-dragstatistik för ställningen."));
+        }
+        if (
+          step.master_recommendation &&
+          step.master_recommendation.uci !== ownMove.uci
+        ) {
+          const isHigherScoringAlternative =
+            step.master_move &&
+            step.master_recommendation.score > step.master_move.score;
+          section.append(reviewMoveLine(
+            isHigherScoringAlternative
+              ? "Bättre Masters-alternativ"
+              : "Bästa Masters-alternativ",
+            step.master_recommendation,
+            "review-recommendation",
+          ));
+        }
+      } else {
+        section.append(reviewText(
+          `${repertoire.username} spelar flera olika drag här:`
+        ));
+        step.player_moves.forEach((move) => {
+          const moveLine = reviewText("");
+          moveLine.append(
+            reviewMovePreview(`${move.san} ·`, move.uci),
+            document.createTextNode(
+              ` ${move.games} partier (${(100 * move.frequency).toFixed(1)} %) · `
+            ),
+            reviewScoreValue(move.score),
+            document.createTextNode(` (${move.decided_games} partier)`),
+          );
+          section.append(moveLine);
+        });
+        if (step.best_player_move) {
+          const bestPlayerResult = reviewText(`Bäst resultat för ${repertoire.username}: `);
+          bestPlayerResult.append(reviewMovePreview(
+            `${step.best_player_move.san}.`,
+            step.best_player_move.uci,
+          ));
+          section.append(bestPlayerResult);
+        }
+        const masterSummary = renderBranchMasterSummary(step);
+        section.append(masterSummary);
+        if (step.selected_move) {
+          const selectedLine = reviewText("Vald fortsättning: ");
+          selectedLine.append(reviewMovePreview(
+            `${step.selected_move.san}.`,
+            step.selected_move.uci,
+          ));
+          section.append(selectedLine);
+        } else {
+          const choices = document.createElement("div");
+          choices.className = "review-choices";
+          choices.setAttribute("aria-label", "Välj en fortsättning");
+          step.player_moves.forEach((move) => {
+            const choice = document.createElement("button");
+            choice.className = "review-choice";
+            choice.type = "button";
+            choice.disabled = reviewSession.loading;
+            choice.append(
+              document.createTextNode(`Fortsätt med ${move.san} · ${move.games} partier · `),
+              reviewScoreValue(move.score, "review-choice-score"),
+              document.createTextNode(` (${move.decided_games} partier)`),
+            );
+            choice.addEventListener("click", () => selectReviewMove(move, step.branch_index));
+            choices.append(choice);
+          });
+          section.append(choices);
+        }
+      }
+      const analysisLine = reviewText("");
+      analysisLine.append(lichessAnalysisLink(step.position_fen));
+      section.append(analysisLine);
+      reviewResult.append(section);
+
+      const isLastStep = reviewSession.stepIndex === reviewSession.steps.length - 1;
+      if (isLastStep && !(step.type === "branch" && !step.selected_move)) {
+        reviewResult.append(reviewText(reviewSession.stoppedReason));
+      }
+      reviewPrevious.disabled = reviewSession.loading || reviewSession.stepIndex === 0;
+      reviewNext.disabled =
+        reviewSession.loading || isLastStep || (step.type === "branch" && !step.selected_move);
+      reviewNext.title = step.type === "branch" && !step.selected_move
+        ? "Välj en fortsättning ovan för att gå vidare."
+        : "";
+    }
+
+    async function selectReviewMove(move, branchIndex) {
+      reviewSession.choicesUci = reviewSession.choicesUci.slice(0, branchIndex);
+      reviewSession.choicesUci.push(move.uci);
+      reviewSession.advancePastSelectedBranch = true;
+      reviewSession.stepIndex = reviewSession.steps.findIndex(
+        (step) => step.type === "branch" && step.branch_index === branchIndex,
+      );
+      reviewResult.querySelectorAll("button").forEach((choice) => {
+        choice.disabled = true;
+      });
+      reviewNext.disabled = true;
+      reviewResult.textContent = "Fortsätter granskningen...";
+      try {
+        await fetchReview();
+      } catch (error) {
+        reviewResult.textContent = error.message;
+      }
+    }
+
+    function navigateToReviewStep(step) {
+      let node = repertoire.root;
+      const pathNodes = [node];
+      const moves = [];
+      for (const moveUci of step.path_uci) {
+        const child = node.children.find((candidate) => candidate.move_uci === moveUci);
+        if (!child) throw new Error("Granskningslinjen saknas i repertoaren.");
+        moves.push(formatMove(node.fen, child.move_san, false));
+        pathNodes.push(child);
+        node = child;
+      }
+      history.splice(0, history.length, ...pathNodes.slice(0, -1));
+      currentMoves = moves;
+      currentNode = node;
+      renderBoard(currentNode);
+      renderMoves();
+    }
+
+    function reviewText(text, className = "") {
+      const paragraph = document.createElement("p");
+      paragraph.className = className;
+      paragraph.textContent = text;
+      return paragraph;
+    }
+
+    function clearActiveReview() {
+      reviewSession = null;
+      reviewNextMoveUci = null;
+      reviewFlow.classList.add("hidden");
+      boardPanel.classList.remove("review-active");
+    }
+
+    function reviewScoreValue(score, className = "") {
+      const value = document.createElement("span");
+      value.className = [
+        score === null ? "score-neutral" : scoreClassForPercentage(score),
+        className,
+      ].filter(Boolean).join(" ");
+      value.textContent = score === null ? "ingen poängstatistik" : `${score.toFixed(1)} % poäng`;
+      return value;
+    }
+
+    function reviewScoreLine(label, score, games) {
+      const line = reviewText(`${label}: `);
+      line.append(
+        reviewScoreValue(score),
+        document.createTextNode(` (${games} partier)`),
+      );
+      return line;
+    }
+
+    function reviewMoveLine(label, move, className = "") {
+      if (!move) {
+        return reviewText(`${label}: ingen statistik med minst 100 partier`, className);
+      }
+      const line = reviewText(`${label}: `, className);
+      const movePreview = reviewMovePreview(move.san, move.uci);
+      line.append(
+        movePreview,
+        document.createTextNode(" · "),
+        reviewScoreValue(move.score),
+        document.createTextNode(` (${move.games} partier)`),
+      );
+      return line;
+    }
+
+    function reviewMovePreview(text, moveUci) {
+      const preview = document.createElement("span");
+      preview.className = "review-move-preview";
+      preview.tabIndex = 0;
+      preview.textContent = text;
+      preview.addEventListener("mouseenter", () => {
+        hoveredMoveUci = moveUci;
+        if (currentNode) {
+          renderBoardArrows(currentNode.move_uci, hoveredMoveUci, reviewNextMoveUci);
+        }
+      });
+      preview.addEventListener("mouseleave", () => {
+        hoveredMoveUci = null;
+        if (currentNode) {
+          renderBoardArrows(currentNode.move_uci, null, reviewNextMoveUci);
+        }
+      });
+      preview.addEventListener("focus", () => {
+        hoveredMoveUci = moveUci;
+        if (currentNode) {
+          renderBoardArrows(currentNode.move_uci, hoveredMoveUci, reviewNextMoveUci);
+        }
+      });
+      preview.addEventListener("blur", () => {
+        hoveredMoveUci = null;
+        if (currentNode) {
+          renderBoardArrows(currentNode.move_uci, null, reviewNextMoveUci);
+        }
+      });
+      return preview;
+    }
+
+    function renderBranchMasterSummary(step) {
+      const commonMoves = step.master_most_played_moves;
+      const bestMove = step.master_recommendation;
+      const summary = reviewText("", `review-recommendation ${
+        bestMove ? scoreClassForPercentage(bestMove.score) : ""
+      }`);
+      if (!commonMoves.length && !bestMove) {
+        summary.textContent = "Ingen Masters-statistik med minst 100 partier.";
+        return summary;
+      }
+
+      summary.append(document.createTextNode("Masters: "));
+      if (commonMoves.length) {
+        summary.append(document.createTextNode(
+          bestMove && commonMoves.some((move) => move.uci === bestMove.uci)
+            ? "vanligast och bäst poäng "
+            : "vanligast ",
+        ));
+        commonMoves.forEach((move, index) => {
+          if (index) summary.append(document.createTextNode(", "));
+          summary.append(reviewMovePreview(`${move.san} (${move.games})`, move.uci));
+        });
+      }
+      if (bestMove && commonMoves.some((move) => move.uci === bestMove.uci)) {
+        summary.append(document.createTextNode(
+          ` · ${bestMove.score.toFixed(1)} % (${bestMove.games} partier)`,
+        ));
+      } else if (bestMove) {
+        if (commonMoves.length) summary.append(document.createTextNode(" · "));
+        summary.append(document.createTextNode("bäst poäng "));
+        summary.append(reviewMovePreview(
+          `${bestMove.san} · ${bestMove.score.toFixed(1)} % (${bestMove.games} partier)`,
+          bestMove.uci,
+        ));
+      }
+      return summary;
+    }
+
+    function lichessAnalysisLink(positionFen) {
+      if (
+        typeof positionFen !== "string" ||
+        !/^[A-Za-z0-9/ _-]+$/.test(positionFen)
+      ) {
+        return document.createTextNode("Analyse");
+      }
+      const link = document.createElement("a");
+      link.className = "review-analysis-link";
+      link.href = `https://lichess.org/analysis/standard/${positionFen.replace(/ /g, "_")}`;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = "Analyse";
+      return link;
+    }
+
+    document.querySelector("#back-button").addEventListener("click", () => {
+      if (!history.length) return;
+      clearActiveReview();
+      currentNode = history.pop();
+      currentMoves.pop();
+      renderBoard(currentNode);
+      renderMoves();
+    });
+
+    document.querySelector("#start-button").addEventListener("click", () => {
+      if (!repertoire) return;
+      clearActiveReview();
+      currentNode = repertoire.root;
+      currentMoves = [];
+      firstMovesExpanded = false;
+      history.length = 0;
+      renderBoard(currentNode);
+      renderMoves();
+    });
+
+    document.querySelector("#flip-board-button").addEventListener("click", (event) => {
+      boardFlipped = !boardFlipped;
+      const button = event.currentTarget;
+      button.setAttribute("aria-pressed", String(boardFlipped));
+      if (currentNode) renderBoard(currentNode);
+    });
+
+    function percent(part, whole) {
+      return whole ? `${(100 * part / whole).toFixed(1)}%` : "0.0%";
+    }
+
+    function scoreClass(results) {
+      if (!results.decided_games) return "score-neutral";
+      const whitePercentage = 100 * results.white_points / results.decided_games;
+      const repertoireScore = repertoire.color === "white"
+        ? whitePercentage
+        : 100 - whitePercentage;
+      return scoreClassForPercentage(repertoireScore);
+    }
+
+    function scoreClassForPercentage(score) {
+      const baseline = scorePercentage(repertoire.root.results, repertoire.color);
+      if (baseline === null) return "score-neutral";
+      const lowerThreshold = Math.max(0, baseline - 5);
+      const upperThreshold = Math.min(100, baseline + 5);
+      if (score >= lowerThreshold && score <= upperThreshold) return "score-neutral";
+      return score > upperThreshold ? "score-positive" : "score-negative";
+    }
+
+    function scorePercentage(results, color) {
+      if (!results.decided_games) return null;
+      const points = color === "white"
+        ? results.white_points
+        : results.decided_games - results.white_points;
+      return 100 * points / results.decided_games;
+    }
+
+    function formatResults(results, detailed = false) {
+      if (!results.decided_games) {
+        return "Ingen poängstatistik tillgänglig";
+      }
+      const scorePercentage = percent(results.white_points, results.decided_games);
+      if (detailed) {
+        return `Vits poängprocent: ${scorePercentage}`;
+      }
+      return `Vit ${scorePercentage}`;
+    }
+  </script>
+</body>
+</html>

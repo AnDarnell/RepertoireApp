@@ -1,0 +1,2 @@
+"""Lichess repertoire analysis application."""
+
